@@ -9,6 +9,10 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { HealthModule } from './health/health.module';
 import { S3Module } from './s3/s3.module';
+import { InstallerTypesModule } from './installer-types/installer-types.module';
+import { JobsModule } from './jobs/jobs.module';
+import { TasksModule } from './tasks/tasks.module';
+import { TaskMediaModule } from './task-media/task-media.module';
 
 @Module({
   imports: [
@@ -42,6 +46,10 @@ import { S3Module } from './s3/s3.module';
     UsersModule,
     HealthModule,
     S3Module,
+    InstallerTypesModule,
+    JobsModule,
+    TasksModule,
+    TaskMediaModule,
   ],
   controllers: [AppController],
   providers: [AppService],

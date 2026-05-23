@@ -10,8 +10,10 @@ import {
 import * as bcrypt from 'bcrypt';
 
 export enum UserRole {
-  USER = 'user',
   ADMIN = 'admin',
+  MANAGER = 'manager',
+  INSTALLER = 'installer',
+  QA = 'qa',
 }
 
 @Entity('users')
@@ -31,8 +33,11 @@ export class User {
   @Column({ select: false })
   password: string;
 
-  @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
+  @Column({ type: 'enum', enum: UserRole, default: UserRole.INSTALLER })
   role: UserRole;
+
+  @Column({ type: 'uuid', nullable: true })
+  installerTypeId: string | null;
 
   @Column({ nullable: true, type: 'text' })
   refreshToken: string | null;
