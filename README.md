@@ -61,10 +61,9 @@ REFRESH_TOKEN_SECRET=your_refresh_token_secret
 JWT_EXPIRATION=1d
 JWT_REFRESH_EXPIRATION=7d
 
-AWS_REGION=eu-north-1
-AWS_ACCESS_KEY_ID=your_access_key_id
-AWS_SECRET_ACCESS_KEY=your_secret_access_key
-AWS_S3_BUCKET=your_bucket_name
+S3_ACCESS_KEY=your_access_key_id
+S3_SECRET_KEY=your_secret_access_key
+S3_BUCKET=your_bucket_name
 ```
 
 ---
