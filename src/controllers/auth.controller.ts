@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import { prisma } from '../app';
 import { AppError, asyncHandler } from '../utils/errors';
 import { sendPasswordResetEmail } from '../services/email.service';
+import { uploadToS3 } from '../utils/s3Upload';
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = req.body;
@@ -41,11 +42,19 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
 
 export const updateProfile = asyncHandler(async (req: Request, res: Response) => {
   const { name } = req.body;
-  const avatarFile = (req as any).file;
+  const avatarFile = (req as any).file as Express.Multer.File | undefined;
 
   const data: { name?: string; avatar?: string } = {};
   if (name?.trim()) data.name = name.trim();
-  if (avatarFile) data.avatar = avatarFile.filename;
+  if (avatarFile) {
+    const url = await uploadToS3(
+      avatarFile.buffer,
+      avatarFile.mimetype,
+      'avatars',
+      avatarFile.originalname,
+    );
+    data.avatar = url;
+  }
 
   if (Object.keys(data).length === 0) throw new AppError('Nothing to update', 400);
 

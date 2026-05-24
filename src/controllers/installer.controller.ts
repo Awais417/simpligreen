@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../app';
 import { AppError, asyncHandler } from '../utils/errors';
+import { uploadToS3 } from '../utils/s3Upload';
 
 export const getTasks = asyncHandler(async (req: Request, res: Response) => {
   const tasks = await prisma.task.findMany({
@@ -47,8 +48,15 @@ export const uploadMedia = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError('fileType must be "image" or "certificate"');
   }
 
+  const s3Url = await uploadToS3(
+    req.file.buffer,
+    req.file.mimetype,
+    'task-media',
+    req.file.originalname,
+  );
+
   const media = await prisma.taskMedia.create({
-    data: { taskId: task.id, filePath: req.file.path, fileType: fileType as any },
+    data: { taskId: task.id, filePath: s3Url, fileType: fileType as any },
   });
   res.status(201).json(media);
 });
