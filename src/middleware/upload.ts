@@ -2,7 +2,9 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
-const uploadDir = process.env.UPLOAD_DIR || 'uploads';
+// Lambda (Netlify) only allows writes to /tmp; fall back to local 'uploads' in dev
+const uploadDir = process.env.UPLOAD_DIR ||
+  (process.env.LAMBDA_TASK_ROOT ? '/tmp/uploads' : 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
 const storage = multer.diskStorage({

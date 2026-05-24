@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
@@ -23,8 +24,9 @@ model User {
   adminJobs       Job[]          @relation("AdminJobs")
   managerJobs     Job[]          @relation("ManagerJobs")
   qaJobs          Job[]          @relation("QAJobs")
-  tasks           Task[]
-  qaReviews       QaReview[]
+  tasks               Task[]
+  qaReviews           QaReview[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 model InstallerType {
@@ -83,6 +85,19 @@ model TaskMedia {
   uploadedAt DateTime @default(now())
 
   task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
 }
 
 model QaReview {

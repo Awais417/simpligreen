@@ -16,8 +16,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Serve uploaded files
-const uploadDir = path.join(process.cwd(), process.env.UPLOAD_DIR || 'uploads');
+// Serve uploaded files (local dev only; on Lambda /tmp is ephemeral)
+const uploadDir = process.env.UPLOAD_DIR ||
+  (process.env.LAMBDA_TASK_ROOT ? '/tmp/uploads' : path.join(process.cwd(), 'uploads'));
 app.use('/uploads', express.static(uploadDir));
 
 // Routes
