@@ -13,8 +13,9 @@ export async function sendPasswordResetEmail(
   userName: string,
   resetToken: string,
 ): Promise<void> {
-  const appUrl = process.env.APP_URL || 'http://localhost:5000';
-  const resetLink = `${appUrl}/reset-password?token=${resetToken}`;
+  // FRONTEND_URL points to the Next.js app; fall back to APP_URL then localhost
+  const frontendUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000';
+  const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
 
   await transporter.sendMail({
     from: `"SimpliGreen CRM" <${process.env.EMAIL_FROM}>`,
