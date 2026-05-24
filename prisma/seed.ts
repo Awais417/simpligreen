@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
@@ -33,6 +34,11 @@ async function main() {
     where: { email: 'alice@simplgreencrm.com' },
     update: {},
     create: { name: 'Alice Admin', email: 'alice@simplgreencrm.com', password: hash('password123'), role: 'admin' },
+  });
+  await prisma.user.upsert({
+    where: { email: 'buttehtesham86@gmail.com' },
+    update: {},
+    create: { name: 'Ehtesham Butt', email: 'buttehtesham86@gmail.com', password: hash('Admin@1234'), role: 'admin' },
   });
 
   // Managers
