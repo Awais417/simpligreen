@@ -8,7 +8,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const LOGO_URL    = 'https://simpligreen.netlify.app/logo.jpeg';
+const LOGO_URL    = 'https://simpligreen.s3.eu-north-1.amazonaws.com/brand/logo.jpeg';
 const BRAND_GREEN = '#4caf50';
 const BRAND_DARK  = '#2e2e2e';
 
