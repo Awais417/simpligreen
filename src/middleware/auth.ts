@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { TokenExpiredError, JsonWebTokenError } from 'jsonwebtoken';
 import { AppError } from '../utils/errors';
 
 export interface TokenPayload {
@@ -25,7 +25,13 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
     const payload = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as TokenPayload;
     req.user = payload;
     next();
-  } catch {
-    next(new AppError('Invalid or expired token', 401));
+  } catch (err) {
+    if (err instanceof TokenExpiredError) {
+      return next(new AppError('Your session has expired. Please log in again.', 401));
+    }
+    if (err instanceof JsonWebTokenError) {
+      return next(new AppError('Invalid authentication token. Please log in again.', 401));
+    }
+    next(new AppError('Authentication failed. Please log in again.', 401));
   }
 };

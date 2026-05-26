@@ -12,7 +12,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   if (!email || !password) throw new AppError('Email and password are required');
 
   const user = await prisma.user.findUnique({
-    where: { email },
+    where: { email: email.toLowerCase().trim() },
     include: { installerType: true },
   });
   if (!user || !user.isActive) throw new AppError('Invalid credentials', 401);
@@ -72,7 +72,7 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response) =
   const { email } = req.body;
   if (!email) throw new AppError('Email is required');
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
 
   // Always return success to prevent email enumeration
   if (!user || !user.isActive) {
