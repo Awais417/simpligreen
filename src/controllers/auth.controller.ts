@@ -15,10 +15,10 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     where: { email: email.toLowerCase().trim() },
     include: { installerType: true },
   });
-  if (!user || !user.isActive) throw new AppError('Invalid credentials', 401);
+  if (!user || !user.isActive) throw new AppError('Invalid email or password. Please try again.', 400);
 
   const valid = await bcrypt.compare(password, user.password);
-  if (!valid) throw new AppError('Invalid credentials', 401);
+  if (!valid) throw new AppError('Invalid email or password. Please try again.', 400);
 
   const token = jwt.sign(
     { userId: user.id, role: user.role },
