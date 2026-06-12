@@ -1,11 +1,14 @@
 import nodemailer from 'nodemailer';
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: process.env.MAIL_SERVER || 'smtp.office365.com',
+  port: parseInt(process.env.MAIL_PORT || '587'),
+  secure: false, // STARTTLS
   auth: {
-    user: process.env.EMAIL_FROM,
-    pass: process.env.EMAIL_APP_PASSWORD,
+    user: process.env.MAIL_USERNAME,
+    pass: process.env.MAIL_PASSWORD,
   },
+  tls: { ciphers: 'SSLv3' },
 });
 
 const LOGO_URL    = 'https://simpligreen.s3.eu-north-1.amazonaws.com/brand/logo.jpeg';
@@ -222,7 +225,7 @@ export async function sendPasswordResetEmail(
 </html>`;
 
   await transporter.sendMail({
-    from: `"SimpliGreen Energy Solutions" <${process.env.EMAIL_FROM}>`,
+    from: `"SimpliGreen Energy Solutions" <${process.env.MAIL_DEFAULT_SENDER || process.env.MAIL_USERNAME}>`,
     to: toEmail,
     subject: '🔐 Reset your SimpliGreen CRM password',
     html,
