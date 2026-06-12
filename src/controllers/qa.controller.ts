@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../app';
 import { AppError, asyncHandler } from '../utils/errors';
+import { sendJobApprovedEmail, sendJobRejectedEmail } from '../services/email.service';
 
 export const getJobs = asyncHandler(async (req: Request, res: Response) => {
   const jobs = await prisma.job.findMany({
@@ -39,23 +40,29 @@ export const getJob = asyncHandler(async (req: Request, res: Response) => {
 export const approveJob = asyncHandler(async (req: Request, res: Response) => {
   const job = await prisma.job.findFirst({
     where: { id: req.params.jobId, qaId: req.user!.userId, status: 'submitted_to_qa' },
+    include: { manager: { select: { name: true, email: true } } },
   });
   if (!job) throw new AppError('Job not ready for QA review', 404);
 
+  const comments = req.body.comments ?? null;
   await prisma.$transaction([
     prisma.job.update({
       where: { id: job.id },
       data: { status: 'approved', completedAt: new Date() },
     }),
     prisma.qaReview.create({
-      data: {
-        jobId: job.id,
-        qaId: req.user!.userId,
-        decision: 'approved',
-        comments: req.body.comments ?? null,
-      },
+      data: { jobId: job.id, qaId: req.user!.userId, decision: 'approved', comments },
     }),
   ]);
+
+  const qa = await prisma.user.findUnique({ where: { id: req.user!.userId }, select: { name: true } });
+  sendJobApprovedEmail(
+    (job as any).manager.email,
+    (job as any).manager.name,
+    job.title,
+    qa?.name || 'QA',
+    comments,
+  ).catch(console.error);
 
   res.json({ message: 'Job approved and finalized' });
 });
@@ -66,6 +73,7 @@ export const rejectJob = asyncHandler(async (req: Request, res: Response) => {
 
   const job = await prisma.job.findFirst({
     where: { id: req.params.jobId, qaId: req.user!.userId, status: 'submitted_to_qa' },
+    include: { manager: { select: { name: true, email: true } } },
   });
   if (!job) throw new AppError('Job not ready for QA review', 404);
 
@@ -75,6 +83,15 @@ export const rejectJob = asyncHandler(async (req: Request, res: Response) => {
       data: { jobId: job.id, qaId: req.user!.userId, decision: 'rejected', comments },
     }),
   ]);
+
+  const qa = await prisma.user.findUnique({ where: { id: req.user!.userId }, select: { name: true } });
+  sendJobRejectedEmail(
+    (job as any).manager.email,
+    (job as any).manager.name,
+    job.title,
+    qa?.name || 'QA',
+    comments,
+  ).catch(console.error);
 
   res.json({ message: 'Job rejected and returned to manager' });
 });

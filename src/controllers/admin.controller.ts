@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '../app';
 import { AppError, asyncHandler } from '../utils/errors';
 import { generateJobPDF } from '../services/pdf.service';
+import { sendJobAssignedEmail } from '../services/email.service';
 
 // ── Users ────────────────────────────────────────────────────────────────────
 
@@ -112,10 +113,19 @@ export const createJob = asyncHandler(async (req: Request, res: Response) => {
   const job = await prisma.job.create({
     data: { title, address: address ?? null, description, adminId: req.user!.userId, managerId, qaId, status: 'in_progress' },
     include: {
-      manager: { select: { id: true, name: true } },
-      qa: { select: { id: true, name: true } },
+      admin:   { select: { id: true, name: true } },
+      manager: { select: { id: true, name: true, email: true } },
+      qa:      { select: { id: true, name: true, email: true } },
     },
   });
+
+  // Fire-and-forget email notifications
+  const adminName = (job as any).admin?.name || 'Admin';
+  Promise.all([
+    sendJobAssignedEmail((job as any).manager.email, (job as any).manager.name, 'manager', title, address ?? null, adminName),
+    sendJobAssignedEmail((job as any).qa.email,      (job as any).qa.name,      'qa',      title, address ?? null, adminName),
+  ]).catch(console.error);
+
   res.status(201).json(job);
 });
 
