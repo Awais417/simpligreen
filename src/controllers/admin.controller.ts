@@ -36,11 +36,16 @@ export const createUser = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const updateUser = asyncHandler(async (req: Request, res: Response) => {
-  const { name, email, password, isActive, installerTypeId } = req.body;
+  const { name, email, password, role, isActive, installerTypeId } = req.body;
   const data: Record<string, any> = {};
   if (name !== undefined) data.name = name;
-  if (email !== undefined) data.email = email;
+  if (email !== undefined) data.email = email.toLowerCase().trim();
   if (password) data.password = await bcrypt.hash(password, 10);
+  if (role !== undefined) {
+    const validRoles = ['admin', 'manager', 'installer', 'qa'];
+    if (!validRoles.includes(role)) throw new AppError(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
+    data.role = role;
+  }
   if (typeof isActive === 'boolean') data.isActive = isActive;
   if (installerTypeId !== undefined) data.installerTypeId = installerTypeId;
 
@@ -53,9 +58,57 @@ export const updateUser = asyncHandler(async (req: Request, res: Response) => {
   res.json(userSafe);
 });
 
+export const updateUserRole = asyncHandler(async (req: Request, res: Response) => {
+  const { role } = req.body;
+  if (!role) throw new AppError('role is required');
+  const validRoles = ['admin', 'manager', 'installer', 'qa'];
+  if (!validRoles.includes(role)) throw new AppError(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
+
+  const user = await prisma.user.update({
+    where: { id: req.params.id },
+    data: { role },
+    include: { installerType: true },
+  });
+  const { password: _, ...userSafe } = user;
+  res.json({ message: 'Role updated successfully', user: userSafe });
+});
+
+export const updateUserPassword = asyncHandler(async (req: Request, res: Response) => {
+  const { password } = req.body;
+  if (!password) throw new AppError('password is required');
+  if (password.length < 8) throw new AppError('Password must be at least 8 characters');
+
+  const hashed = await bcrypt.hash(password, 12);
+  await prisma.user.update({
+    where: { id: req.params.id },
+    data: { password: hashed },
+  });
+  res.json({ message: 'Password updated successfully' });
+});
+
 export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
+  const target = await prisma.user.findUnique({ where: { id: req.params.id } });
+  if (!target) throw new AppError('User not found', 404);
+
+  // Clean up related records to avoid FK violations
+  const jobs = await prisma.job.findMany({ where: { managerId: target.id }, select: { id: true } });
+  const jobIds = jobs.map(j => j.id);
+  if (jobIds.length) {
+    const tasks = await prisma.task.findMany({ where: { jobId: { in: jobIds } }, select: { id: true } });
+    const taskIds = tasks.map(t => t.id);
+    if (taskIds.length) await prisma.taskMedia.deleteMany({ where: { taskId: { in: taskIds } } });
+    if (taskIds.length) await prisma.task.deleteMany({ where: { id: { in: taskIds } } });
+    await prisma.job.deleteMany({ where: { id: { in: jobIds } } });
+  }
+  const installerTasks = await prisma.task.findMany({ where: { installerId: target.id }, select: { id: true } });
+  const installerTaskIds = installerTasks.map(t => t.id);
+  if (installerTaskIds.length) {
+    await prisma.taskMedia.deleteMany({ where: { taskId: { in: installerTaskIds } } });
+    await prisma.task.deleteMany({ where: { id: { in: installerTaskIds } } });
+  }
+
   await prisma.user.delete({ where: { id: req.params.id } });
-  res.status(204).send();
+  res.status(200).json({ message: 'User deleted successfully' });
 });
 
 // ── Installer Types ──────────────────────────────────────────────────────────

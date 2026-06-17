@@ -10,6 +10,8 @@ router.use(authenticate, authorize('admin'));
 router.get('/users', admin.getUsers);
 router.post('/users', admin.createUser);
 router.put('/users/:id', admin.updateUser);
+router.patch('/users/:id/role', admin.updateUserRole);
+router.patch('/users/:id/password', admin.updateUserPassword);
 router.delete('/users/:id', admin.deleteUser);
 
 // Installer Types
