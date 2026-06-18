@@ -90,22 +90,34 @@ export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
   const target = await prisma.user.findUnique({ where: { id: req.params.id } });
   if (!target) throw new AppError('User not found', 404);
 
-  // Clean up related records to avoid FK violations
-  const jobs = await prisma.job.findMany({ where: { managerId: target.id }, select: { id: true } });
+  // Find ALL jobs this user is involved in (admin, manager, or QA)
+  const jobs = await prisma.job.findMany({
+    where: { OR: [{ adminId: target.id }, { managerId: target.id }, { qaId: target.id }] },
+    select: { id: true },
+  });
   const jobIds = jobs.map(j => j.id);
+
   if (jobIds.length) {
+    // Delete task media and tasks inside those jobs
     const tasks = await prisma.task.findMany({ where: { jobId: { in: jobIds } }, select: { id: true } });
     const taskIds = tasks.map(t => t.id);
     if (taskIds.length) await prisma.taskMedia.deleteMany({ where: { taskId: { in: taskIds } } });
     if (taskIds.length) await prisma.task.deleteMany({ where: { id: { in: taskIds } } });
+    // Delete QA reviews on those jobs
+    await prisma.qaReview.deleteMany({ where: { jobId: { in: jobIds } } });
     await prisma.job.deleteMany({ where: { id: { in: jobIds } } });
   }
+
+  // Delete tasks where user is the installer (not already deleted above)
   const installerTasks = await prisma.task.findMany({ where: { installerId: target.id }, select: { id: true } });
   const installerTaskIds = installerTasks.map(t => t.id);
   if (installerTaskIds.length) {
     await prisma.taskMedia.deleteMany({ where: { taskId: { in: installerTaskIds } } });
     await prisma.task.deleteMany({ where: { id: { in: installerTaskIds } } });
   }
+
+  // Delete standalone QA reviews by this user
+  await prisma.qaReview.deleteMany({ where: { qaId: target.id } });
 
   await prisma.user.delete({ where: { id: req.params.id } });
   res.status(200).json({ message: 'User deleted successfully' });
